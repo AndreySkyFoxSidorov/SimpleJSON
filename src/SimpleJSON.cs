@@ -9,25 +9,67 @@ using System.Linq;
 
 namespace SimpleJSON
 {
-    public enum JSONBinaryTag
-    {
-        Array = 1,
-        Class = 2,
-        Value = 3,
-        IntValue = 4,
-        DoubleValue = 5,
-        BoolValue = 6,
-        FloatValue = 7,
-    }
-
     public class JSONNode
     {
+        public enum JSONTypeTag
+        {
+            Array = 1,
+            Class = 2,
+            Value = 3,
+            IntValue = 4,
+            DoubleValue = 5,
+            BoolValue = 6,
+            FloatValue = 7,
+        }
+
         public virtual void Add(string aKey, JSONNode aItem) { }
         public virtual JSONNode this[int aIndex] { get { return null; } set { } }
         public virtual JSONNode this[string aKey] { get { return null; } set { } }
-        public virtual string Value { get { return ""; } set { } }
-        public virtual JSONBinaryTag ValueTag { get { return JSONBinaryTag.Value; } set { } }
+        public virtual JSONTypeTag ValueTag { get { return JSONTypeTag.Value; } set { } }
         public virtual int Count { get { return 0; } }
+
+        private string m_Data;
+        public virtual string Value
+        {
+            get
+            {
+                return m_Data;
+            }
+            set
+            {
+                m_Data = value;
+            }
+        }
+        public JSONNode()
+        {
+            ValueTag = JSONTypeTag.Value;
+            m_Data = "";
+        }
+        public JSONNode(string aData)
+        {
+            ValueTag = JSONTypeTag.Value;
+            m_Data = aData;
+        }
+        public JSONNode(float aData)
+        {
+            ValueTag = JSONTypeTag.FloatValue;
+            AsFloat = aData;
+        }
+        public JSONNode(double aData)
+        {
+            ValueTag = JSONTypeTag.DoubleValue;
+            AsDouble = aData;
+        }
+        public JSONNode(bool aData)
+        {
+            ValueTag = JSONTypeTag.BoolValue;
+            AsBool = aData;
+        }
+        public JSONNode(int aData)
+        {
+            ValueTag = JSONTypeTag.IntValue;
+            AsInt = aData;
+        }
 
         public virtual void Add(JSONNode aItem)
         {
@@ -60,7 +102,7 @@ namespace SimpleJSON
 
         public override string ToString()
         {
-            if (ValueTag == JSONBinaryTag.Value)
+            if (ValueTag == JSONTypeTag.Value)
                 return "\"" + Value + "\"";
             else
                 return Value;
@@ -68,7 +110,7 @@ namespace SimpleJSON
 
         public virtual string ToString(string aPrefix)
         {
-            if (ValueTag == JSONBinaryTag.Value)
+            if (ValueTag == JSONTypeTag.Value)
                 return "\"" + Value + "\"";
             else
                 return Value;
@@ -87,7 +129,7 @@ namespace SimpleJSON
             }
             set
             {
-                ValueTag = JSONBinaryTag.IntValue;
+                ValueTag = JSONTypeTag.IntValue;
                 Value = value.ToString();
             }
         }
@@ -104,7 +146,7 @@ namespace SimpleJSON
             }
             set
             {
-                ValueTag = JSONBinaryTag.FloatValue;
+                ValueTag = JSONTypeTag.FloatValue;
                 Value = value.ToString();
             }
         }
@@ -121,7 +163,7 @@ namespace SimpleJSON
             }
             set
             {
-                ValueTag = JSONBinaryTag.DoubleValue;
+                ValueTag = JSONTypeTag.DoubleValue;
                 Value = value.ToString();
             }
         }
@@ -138,7 +180,7 @@ namespace SimpleJSON
             }
             set
             {
-                ValueTag = JSONBinaryTag.BoolValue;
+                ValueTag = JSONTypeTag.BoolValue;
                 Value = (value) ? "true" : "false";
             }
         }
@@ -159,27 +201,27 @@ namespace SimpleJSON
 
         public static implicit operator JSONNode(string s)
         {
-            return new JSONData(s);
+            return new JSONNode(s);
         }
 
         public static implicit operator JSONNode(int s)
         {
-            return new JSONData(s);
+            return new JSONNode(s);
         }
 
         public static implicit operator JSONNode(float s)
         {
-            return new JSONData(s);
+            return new JSONNode(s);
         }
 
         public static implicit operator JSONNode(double s)
         {
-            return new JSONData(s);
+            return new JSONNode(s);
         }
 
         public static implicit operator JSONNode(bool s)
         {
-            return new JSONData(s);
+            return new JSONNode(s);
         }
 
         public static implicit operator string(JSONNode d)
@@ -465,148 +507,35 @@ namespace SimpleJSON
 
             if (aJSON[b] == '\"' || aJSON[b-1] == '\"' || aJSON[b - 2] == '\"')
             {
-                return (new JSONData(aJSONstring));
+                return (new JSONNode(aJSONstring));
             }
             else
             {
                 if (aJSONstring.Contains("."))
                 {
-                    return (new JSONData(float.Parse(aJSONstring)));
+                    return (new JSONNode(float.Parse(aJSONstring)));
                 }
                 else if (aJSONstring.Contains("true") || aJSONstring.Contains("false"))
                 {
-                    return (new JSONData(bool.Parse(aJSONstring)));
+                    return (new JSONNode(bool.Parse(aJSONstring)));
                 }
                 else
                 {
-                    // for (int a = i; a > 1; a--) UnityEngine.Debug.Log((int)(aJSON[a]) + " -" + aJSON[a] + "- ");
                     try
                     {
-                        return (new JSONData(int.Parse(aJSONstring)));
+                        return (new JSONNode(int.Parse(aJSONstring)));
                     }
                     catch
                     {
-                     //   UnityEngine.Debug.Log((int)(aJSON[a]) + " -" + aJSON[a] + "- ");
-                        return (new JSONData(aJSONstring));
+                        return (new JSONNode(aJSONstring));
                     }
                     
                 }
             }
 
-            return (new JSONData(aJSONstring));
+            return (new JSONNode(aJSONstring));
         }
 
-        public virtual void Serialize(System.IO.BinaryWriter aWriter) { }
-
-        public void SaveToStream(System.IO.Stream aData)
-        {
-            var W = new System.IO.BinaryWriter(aData);
-            Serialize(W);
-        }
-
-        public void SaveToFile(string aFileName)
-        {
-#if USE_FileIO
-            System.IO.Directory.CreateDirectory((new System.IO.FileInfo(aFileName)).Directory.FullName);
-            using (var F = System.IO.File.OpenWrite(aFileName))
-            {
-                SaveToStream(F);
-            }
-#else
-		UnityEngine.Debug.LogError("Can't use File IO stuff in webplayer");
-#endif
-        }
-
-        public string SaveToBase64()
-        {
-            using (var stream = new System.IO.MemoryStream())
-            {
-                SaveToStream(stream);
-                stream.Position = 0;
-                return System.Convert.ToBase64String(stream.ToArray());
-            }
-        }
-
-        public static JSONNode Deserialize(System.IO.BinaryReader aReader)
-        {
-            JSONBinaryTag type = (JSONBinaryTag)aReader.ReadByte();
-            switch (type)
-            {
-                case JSONBinaryTag.Array:
-                    {
-                        int count = aReader.ReadInt32();
-                        JSONArray tmp = new JSONArray();
-                        for (int i = 0; i < count; i++)
-                        {
-                            tmp.Add(Deserialize(aReader));
-                        }
-                        return tmp;
-                    }
-                case JSONBinaryTag.Class:
-                    {
-                        int count = aReader.ReadInt32();
-                        JSONClass tmp = new JSONClass();
-                        for (int i = 0; i < count; i++)
-                        {
-                            string key = aReader.ReadString();
-                            var val = Deserialize(aReader);
-                            tmp.Add(key, val);
-                        }
-                        return tmp;
-                    }
-                case JSONBinaryTag.Value:
-                    {
-                        return new JSONData(aReader.ReadString());
-                    }
-                case JSONBinaryTag.IntValue:
-                    {
-                        return new JSONData(aReader.ReadInt32());
-                    }
-                case JSONBinaryTag.DoubleValue:
-                    {
-                        return new JSONData(aReader.ReadDouble());
-                    }
-                case JSONBinaryTag.BoolValue:
-                    {
-                        return new JSONData(aReader.ReadBoolean());
-                    }
-                case JSONBinaryTag.FloatValue:
-                    {
-                        return new JSONData(aReader.ReadSingle());
-                    }
-
-                default:
-                    {
-                        throw new Exception("Error deserializing JSON. Unknown tag: " + type);
-                    }
-            }
-        }
-
-        public static JSONNode LoadFromStream(System.IO.Stream aData)
-        {
-            using (var R = new System.IO.BinaryReader(aData))
-            {
-                return Deserialize(R);
-            }
-        }
-        public static JSONNode LoadFromFile(string aFileName)
-        {
-#if USE_FileIO
-            using (var F = System.IO.File.OpenRead(aFileName))
-            {
-                return LoadFromStream(F);
-            }
-#else
-		UnityEngine.Debug.LogError("Can't use File IO stuff in webplayer");
-#endif
-        }
-        public static JSONNode LoadFromBase64(string aBase64)
-        {
-            var tmp = System.Convert.FromBase64String(aBase64);
-            var stream = new System.IO.MemoryStream(tmp);
-            stream.Position = 0;
-            return LoadFromStream(stream);
-        }
     } // End of JSONNode
 
     public class JSONArray : JSONNode, IEnumerable
@@ -701,15 +630,6 @@ namespace SimpleJSON
             }
             result += "\n" + aPrefix + "]";
             return result;
-        }
-        public override void Serialize(System.IO.BinaryWriter aWriter)
-        {
-            aWriter.Write((byte)JSONBinaryTag.Array);
-            aWriter.Write(m_List.Count);
-            for (int i = 0; i < m_List.Count; i++)
-            {
-                m_List[i].Serialize(aWriter);
-            }
         }
     } // End of JSONArray
 
@@ -853,7 +773,7 @@ namespace SimpleJSON
                 {
                     result += ",";
                 }
-                if (N.Value.ValueTag == JSONBinaryTag.Value)
+                if (N.Value.ValueTag == JSONTypeTag.Value)
                 result += "\"" + N.Key + "\":" + N.Value.ToString();
                 else
                 result += "\"" + N.Key + "\":" + N.Value.ToString().Replace("\"", "");
@@ -872,7 +792,7 @@ namespace SimpleJSON
                     result += ",";
                 }
                 result += "\n" + aPrefix + "   ";
-                if (N.Value.ValueTag == JSONBinaryTag.Value)
+                if (N.Value.ValueTag == JSONTypeTag.Value)
                     result += "\"" + N.Key + "\":" + N.Value.ToString();
                 else
                     result += "\"" + N.Key + "\":" + N.Value.ToString(aPrefix + "   ").Replace("\"", "");
@@ -880,116 +800,8 @@ namespace SimpleJSON
             result += "\n" + aPrefix + "}";
             return result;
         }
-
-        public override void Serialize(System.IO.BinaryWriter aWriter)
-        {
-            aWriter.Write((byte)JSONBinaryTag.Class);
-            aWriter.Write(m_Dict.Count);
-            foreach (string K in m_Dict.Keys)
-            {
-                aWriter.Write(K);
-                m_Dict[K].Serialize(aWriter);
-            }
-        }
     } // End of JSONClass
 
-    public class JSONData : JSONNode
-    {
-        private string m_Data;
-        private JSONBinaryTag ValueTag = JSONBinaryTag.Value;
-        public override string Value
-        {
-            get {
-                return m_Data;
-            }
-            set {
-                m_Data = value;
-            }
-        }
-        public JSONData()
-        {
-            ValueTag = JSONBinaryTag.Value;
-            m_Data = "";
-        }
-        public JSONData(string aData)
-        {
-            ValueTag = JSONBinaryTag.Value;
-            m_Data = aData;
-        }
-        public JSONData(float aData)
-        {
-            ValueTag = JSONBinaryTag.FloatValue;
-            AsFloat = aData;
-        }
-        public JSONData(double aData)
-        {
-            ValueTag = JSONBinaryTag.DoubleValue;
-            AsDouble = aData;
-        }
-        public JSONData(bool aData)
-        {
-            ValueTag = JSONBinaryTag.BoolValue;
-            AsBool = aData;
-        }
-        public JSONData(int aData)
-        {
-            ValueTag = JSONBinaryTag.IntValue;
-            AsInt = aData;
-        }
-
-        public override string ToString()
-        {
-            if(ValueTag == JSONBinaryTag.Value)
-                return "\"" + m_Data + "\"";
-            else
-                return m_Data;
-        }
-
-        public override string ToString(string aPrefix)
-        {
-            if (ValueTag == JSONBinaryTag.Value)
-                return "\"" + m_Data + "\"";
-            else
-                return m_Data;
-        }
-
-        public override void Serialize(System.IO.BinaryWriter aWriter)
-        {
-            var tmp = new JSONData("");
-
-            tmp.AsInt = AsInt;
-            if (tmp.m_Data == this.m_Data)
-            {
-                aWriter.Write((byte)JSONBinaryTag.IntValue);
-                aWriter.Write(AsInt);
-                return;
-            }
-            tmp.AsFloat = AsFloat;
-            if (tmp.m_Data == this.m_Data)
-            {
-                aWriter.Write((byte)JSONBinaryTag.FloatValue);
-                aWriter.Write(AsFloat);
-                return;
-            }
-            tmp.AsDouble = AsDouble;
-            if (tmp.m_Data == this.m_Data)
-            {
-                aWriter.Write((byte)JSONBinaryTag.DoubleValue);
-                aWriter.Write(AsDouble);
-                return;
-            }
-
-            tmp.AsBool = AsBool;
-            if (tmp.m_Data == this.m_Data)
-            {
-                aWriter.Write((byte)JSONBinaryTag.BoolValue);
-                aWriter.Write(AsBool);
-                return;
-            }
-            aWriter.Write((byte)JSONBinaryTag.Value);
-            aWriter.Write(m_Data);
-        }
-    } // End of JSONData
 
     internal class JSONCreator : JSONNode
     {
@@ -1098,13 +910,13 @@ namespace SimpleJSON
         {
             get
             {
-                JSONData tmp = new JSONData(0);
+                JSONNode tmp = new JSONNode(0);
                 Set(tmp);
                 return 0;
             }
             set
             {
-                JSONData tmp = new JSONData(value);
+                JSONNode tmp = new JSONNode(value);
                 Set(tmp);
             }
         }
@@ -1112,13 +924,13 @@ namespace SimpleJSON
         {
             get
             {
-                JSONData tmp = new JSONData(0.0f);
+                JSONNode tmp = new JSONNode(0.0f);
                 Set(tmp);
                 return 0.0f;
             }
             set
             {
-                JSONData tmp = new JSONData(value);
+                JSONNode tmp = new JSONNode(value);
                 Set(tmp);
             }
         }
@@ -1126,13 +938,13 @@ namespace SimpleJSON
         {
             get
             {
-                JSONData tmp = new JSONData(0.0);
+                JSONNode tmp = new JSONNode(0.0);
                 Set(tmp);
                 return 0.0;
             }
             set
             {
-                JSONData tmp = new JSONData(value);
+                JSONNode tmp = new JSONNode(value);
                 Set(tmp);
             }
         }
@@ -1140,13 +952,13 @@ namespace SimpleJSON
         {
             get
             {
-                JSONData tmp = new JSONData(false);
+                JSONNode tmp = new JSONNode(false);
                 Set(tmp);
                 return false;
             }
             set
             {
-                JSONData tmp = new JSONData(value);
+                JSONNode tmp = new JSONNode(value);
                 Set(tmp);
             }
         }
@@ -1169,20 +981,4 @@ namespace SimpleJSON
             }
         }
     } // End of JSONCreator
-
-    public static class JSON
-    {
-        public static JSONNode Parse(string aJSON)
-        {
-            try
-            {
-                return JSONNode.Parse(aJSON);
-            }
-            catch 
-            {                
-                return null;
-            }
-        }
-
-    }
 }
