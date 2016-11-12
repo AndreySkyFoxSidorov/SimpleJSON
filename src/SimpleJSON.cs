@@ -1,11 +1,8 @@
-#if !UNITY_WEBPLAYER
-#define USE_FileIO
-#endif
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace SimpleJSON
 {
@@ -103,17 +100,25 @@ namespace SimpleJSON
         public override string ToString()
         {
             if (ValueTag == JSONTypeTag.Value)
+            {
                 return "\"" + Value + "\"";
+            }
             else
+            {
                 return Value;
+            }
         }
 
         public virtual string ToString(string aPrefix)
         {
             if (ValueTag == JSONTypeTag.Value)
+            {
                 return "\"" + Value + "\"";
+            }
             else
+            {
                 return Value;
+            }
         }
 
         public virtual int AsInt
@@ -286,18 +291,92 @@ namespace SimpleJSON
         public static object DeserializeObject(string dataString, System.Type UserData)
         {
             if (dataString != null)
+            {
                 return UnityEngine.JsonUtility.FromJson(dataString, UserData);
+            }
             else
-                return null;            
+            {
+                return null;
+            }
         }
 
         public static object DeserializeObjectFromJSONNode(JSONNode data, System.Type UserData)
         {
             if (data != null)
+            {
                 return UnityEngine.JsonUtility.FromJson(data.ToString(), UserData);
+            }
             else
+            {
                 return null;
+            }
         }
+
+
+        public static string FormatJson(string UnFormatJson, string INDENT_STRING = "\t")
+        {
+            var indent = 0;
+            var QuoteMode = false;
+            var sb = new StringBuilder();
+            for (var i = 0; i < UnFormatJson.Length; i++)
+            {
+                var ch = UnFormatJson[i];
+                switch (ch)
+                {
+                    case '{':
+                    case '[':
+                        sb.Append(ch);
+                        if (!QuoteMode)
+                        {
+                            sb.AppendLine();
+                            Enumerable.Range(0, ++indent).ForEach(item => sb.Append(INDENT_STRING));
+                        }
+                        break;
+                    case '}':
+                    case ']':
+                        if (!QuoteMode)
+                        {
+                            sb.AppendLine();
+                            Enumerable.Range(0, --indent).ForEach(item => sb.Append(INDENT_STRING));
+                        }
+                        sb.Append(ch);
+                        break;
+                    case '"':
+                        sb.Append(ch);
+                        bool escaped = false;
+                        var index = i;
+                        while (index > 0 && UnFormatJson[--index] == '\\')
+                        {
+                            escaped = !escaped;
+                        }
+                        if (!escaped)
+                        {
+                            QuoteMode ^= true;
+                        }
+                        break;
+                    case ',':
+                        sb.Append(ch);
+                        if (!QuoteMode)
+                        {
+                            sb.AppendLine();
+                            Enumerable.Range(0, indent).ForEach(item => sb.Append(INDENT_STRING));
+                        }
+                        break;
+                    case ':':
+                        sb.Append(ch);
+                        if (!QuoteMode)
+                        {
+                            sb.Append(" ");
+                        }
+                        break;
+                    default:
+                        sb.Append(ch);
+                        break;
+                }
+            }
+            return sb.ToString();
+        }
+
 
         public static JSONNode Parse(string aJSONstring)
         {
@@ -427,7 +506,7 @@ namespace SimpleJSON
                             }
                             else if (TokenName != "")
                             {
-                                ctx.Add(TokenName, ParseHelper(Token, aJSON, i));                                
+                                ctx.Add(TokenName, ParseHelper(Token, aJSON, i));
                             }
                         }
                         TokenName = "";
@@ -500,12 +579,21 @@ namespace SimpleJSON
             int b = i;
             while (aJSON[b] == '\t' || aJSON[b] == '\n' || aJSON[b] == '\r' || aJSON[b] == ' ' || aJSON[b] == '\0')
             {
-                if(b > 3) b--;
-                else break;
-                if (aJSON[b] == '\"') break;
+                if (b > 3)
+                {
+                    b--;
+                }
+                else
+                {
+                    break;
+                }
+                if (aJSON[b] == '\"')
+                {
+                    break;
+                }
             }
 
-            if (aJSON[b] == '\"' || aJSON[b-1] == '\"' || aJSON[b - 2] == '\"')
+            if (aJSON[b] == '\"' || aJSON[b - 1] == '\"' || aJSON[b - 2] == '\"')
             {
                 return (new JSONNode(aJSONstring));
             }
@@ -529,7 +617,7 @@ namespace SimpleJSON
                     {
                         return (new JSONNode(aJSONstring));
                     }
-                    
+
                 }
             }
 
@@ -774,9 +862,13 @@ namespace SimpleJSON
                     result += ",";
                 }
                 if (N.Value.ValueTag == JSONTypeTag.Value)
-                result += "\"" + N.Key + "\":" + N.Value.ToString();
+                {
+                    result += "\"" + N.Key + "\":" + N.Value.ToString();
+                }
                 else
-                result += "\"" + N.Key + "\":" + N.Value.ToString().Replace("\"", "");
+                {
+                    result += "\"" + N.Key + "\":" + N.Value.ToString().Replace("\"", "");
+                }
             }
             result += "}";
             return result;
@@ -793,9 +885,13 @@ namespace SimpleJSON
                 }
                 result += "\n" + aPrefix + "   ";
                 if (N.Value.ValueTag == JSONTypeTag.Value)
+                {
                     result += "\"" + N.Key + "\":" + N.Value.ToString();
+                }
                 else
+                {
                     result += "\"" + N.Key + "\":" + N.Value.ToString(aPrefix + "   ").Replace("\"", "");
+                }
             }
             result += "\n" + aPrefix + "}";
             return result;
@@ -981,4 +1077,15 @@ namespace SimpleJSON
             }
         }
     } // End of JSONCreator
+
+    static class Extensions
+    {
+        public static void ForEach<T>(this IEnumerable<T> ie, Action<T> action)
+        {
+            foreach (var i in ie)
+            {
+                action(i);
+            }
+        }
+    }
 }

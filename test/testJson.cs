@@ -64,7 +64,7 @@ public class testJson : MonoBehaviour
         testObj2.Print();
 
 
-        Debug.Log(StringTojsonClass.ToString());
+        Debug.Log(SimpleJSON.JSONNode.FormatJson(StringTojsonClass.ToString()));
         //  File.WriteAllText(SaveLoadDelete.GetPatch() + "\\Resources\\XML\\ShopItems.json", JSONClass.Parse(Resources.Load<TextAsset>("XML/ShopItems").text).ToString());
 
     }
